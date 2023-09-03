@@ -1,20 +1,27 @@
 package com.example.springbok.ui.fragments.playfield
 
 import android.animation.ObjectAnimator
+import android.app.AlertDialog
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.Gravity
+import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
+import android.widget.Button
 import android.widget.ImageView
-import androidx.core.view.isInvisible
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.createViewModelLazy
+import androidx.fragment.app.findFragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import by.kirich1409.viewbindingdelegate.viewBinding
 import com.example.springbok.R
 import com.example.springbok.data.ItemData
+import com.example.springbok.databinding.DefeatCardViewBinding
 import com.example.springbok.databinding.FragmentPlayFieldBinding
 import com.example.springbok.ui.constants.Constants
 import kotlinx.coroutines.delay
@@ -31,15 +38,16 @@ class PlayFieldFragment : Fragment(R.layout.fragment_play_field) {
     private var repeatIntervalMillis: Long = 1000
     private val itemData = ItemData()
 
-
     private val changeInterval: Runnable = object : Runnable {
         override fun run() {
-            if (repeatIntervalMillis >= 400 && downTime >= 500) {
-                repeatIntervalMillis -= 40
-                downTime -= 20
-            }else{
-                repeatIntervalMillis += 400
-                downTime += 200
+            viewLifecycleOwner.lifecycleScope.launch {
+                if (repeatIntervalMillis >= 400 && downTime >= 500) {
+                    repeatIntervalMillis -= 40
+                    downTime -= 20
+                } else {
+                    repeatIntervalMillis += 400
+                    downTime += 200
+                }
             }
             handler.postDelayed(this, Constants.CHANGE_INTERVAL_TIME)
         }
@@ -47,19 +55,21 @@ class PlayFieldFragment : Fragment(R.layout.fragment_play_field) {
 
     private val resumeItem: Runnable = object : Runnable {
         override fun run() {
-            val random = Random()
-            val randomPercent = random.nextInt(100)
-            var imageId: Int = R.drawable.coin2
-            for (item in itemData.setImage()) {
-                if (randomPercent <= item.percent) {
-                    imageId = item.imageId
-                    break
+            viewLifecycleOwner.lifecycleScope.launch {
+                val random = Random()
+                val randomPercent = random.nextInt(100)
+                var imageId: Int = R.drawable.coin2
+                for (item in itemData.setImage()) {
+                    if (randomPercent <= item.percent) {
+                        imageId = item.imageId
+                        break
+                    }
                 }
+                val gravityX = resources.displayMetrics.widthPixels * random.nextInt(4) / 4
+                items(image = imageId, gravityX = gravityX)
             }
-            val gravityX = resources.displayMetrics.widthPixels * random.nextInt(4) / 4
-            items(image = imageId, gravityX = gravityX)
-
             handler.postDelayed(this, repeatIntervalMillis)
+
         }
     }
 
@@ -77,18 +87,49 @@ class PlayFieldFragment : Fragment(R.layout.fragment_play_field) {
             } else {
                 handler.removeCallbacks(changeInterval)
                 handler.removeCallbacks(resumeItem)
-                findNavController().navigate(R.id.action_playFieldFragment_to_loseFragment)
+                createDefeatCard()
             }
         }
-
         viewModel.coinCount.observe(viewLifecycleOwner) {
             binding.tvCoins.text = getString(R.string.coins, it)
         }
     }
 
+    private fun createDefeatCard() {
+        val dialogBuilder = AlertDialog.Builder(requireContext())
+        val inflater = LayoutInflater.from(context)
+        val defeat = inflater.inflate(R.layout.defeat_card_view, null)
+        dialogBuilder.setView(defeat)
+        val btnRestart = defeat.findViewById<Button>(R.id.btn_restart)
+        val btnGoToMenu = defeat.findViewById<Button>(R.id.btn_go_to_menu)
+
+        val dialog = dialogBuilder.create()
+        dialog.window?.attributes?.gravity = Gravity.CENTER
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        dialog.window?.attributes?.width = WindowManager.LayoutParams.WRAP_CONTENT
+        dialog.window?.attributes?.height = WindowManager.LayoutParams.WRAP_CONTENT
+        dialog.setCanceledOnTouchOutside(false)
+        dialog.show()
+        btnRestart.setOnClickListener {
+            restartGame()
+            dialog.dismiss()
+        }
+        btnGoToMenu.setOnClickListener {
+            findNavController().navigate(R.id.action_playFieldFragment_to_loseFragment)
+            dialog.dismiss()
+        }
+    }
+
+    private fun restartGame() {
+        viewModel.restartGame()
+        handler.postDelayed(changeInterval, 5000)
+        handler.postDelayed(resumeItem, repeatIntervalMillis)
+    }
+
     private fun items(gravityX: Int, image: Int = R.drawable.cub) {
         var item = ImageView(requireContext())
-        val layoutParams = ViewGroup.LayoutParams(150, 150)
+        val layoutParams = ViewGroup.LayoutParams(170, 390)
+        item.setPadding(10, 120, 10, 120)
         item.setImageResource(image)
         item.layoutParams = layoutParams
         item.x = gravityX.toFloat()
@@ -103,28 +144,28 @@ class PlayFieldFragment : Fragment(R.layout.fragment_play_field) {
     }
 
     private fun setupListeners(item: View, image: Int) {
-        item.setOnClickListener {
-            when (image) {
-                R.drawable.button -> {
-                    viewModel.minusLifeCount()
-                    binding.root.removeView(item)
-                }
+        viewLifecycleOwner.lifecycleScope.launch {
+            item.setOnClickListener {
+                when (image) {
+                    R.drawable.button -> {
+                        viewModel.minusLifeCount()
+                        binding.root.removeView(item)
+                    }
 
-                R.drawable.cub -> {
-                    viewModel.plusLifeCount()
-                    binding.root.removeView(item)
-                }
+                    R.drawable.cub -> {
+                        viewModel.plusLifeCount()
+                        binding.root.removeView(item)
+                    }
 
-                R.drawable.coin2 -> {
-                    item.isInvisible = true
-                    viewModel.addCoin()
-                    binding.root.removeView(item)
-                }
+                    R.drawable.coin2 -> {
+                        viewModel.addCoin()
+                        binding.root.removeView(item)
+                    }
 
-                R.drawable.coin1 -> {
-                    item.isInvisible = true
-                    viewModel.addCoin()
-                    binding.root.removeView(item)
+                    R.drawable.coin1 -> {
+                        viewModel.addCoin()
+                        binding.root.removeView(item)
+                    }
                 }
             }
         }

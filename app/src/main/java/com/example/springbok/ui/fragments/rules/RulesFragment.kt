@@ -1,4 +1,4 @@
-package com.example.springbok.ui.fragments.lose
+package com.example.springbok.ui.fragments.rules
 
 import android.os.Bundle
 import android.view.View
@@ -6,20 +6,20 @@ import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import by.kirich1409.viewbindingdelegate.viewBinding
 import com.example.springbok.R
-import com.example.springbok.databinding.FragmentLoseBinding
+import com.example.springbok.databinding.FragmentRulesBinding
 
-class LoseFragment : Fragment(R.layout.fragment_lose) {
+class RulesFragment : Fragment(R.layout.fragment_rules) {
 
-    private val binding by viewBinding(FragmentLoseBinding::bind)
+    private val binding by viewBinding(FragmentRulesBinding::bind)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setupListeners()
     }
 
-    private fun setupListeners() {
-        binding.btnPlay.setOnClickListener {
-            findNavController().navigate(R.id.action_loseFragment_to_playFieldFragment)
+    private fun setupListeners() = with(binding) {
+        ivGoToBackMenu.setOnClickListener{
+            findNavController().navigateUp()
         }
     }
 }

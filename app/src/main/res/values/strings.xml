@@ -4,4 +4,8 @@
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="lives">lives: %1$d</string>
     <string name="coins">coins: %1$d</string>
+    <string name="defeat">Defeat</string>
+    <string name="coinsDescription">A coin is an element that increases the amount of money per unit.</string>
+    <string name="cubDescription">A cube is an element that increases the amount of lives by one.</string>
+    <string name="buttonDescription">A button is an element that decreases the amount of lives by one.</string>
 </resources>

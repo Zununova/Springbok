@@ -23,4 +23,9 @@ class PlayFieldViewModel : ViewModel() {
     fun plusLifeCount() {
         _lifeCount.value = _lifeCount.value?.plus(1)
     }
+
+    fun restartGame() {
+        _lifeCount.value = 2
+        _coinCount.value = 0
+    }
 }
